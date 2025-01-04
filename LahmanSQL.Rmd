@@ -5,6 +5,19 @@ date: "2025-01-02"
 ---
 
 ```{r}
-# Test
+# Libraries
+library("DBI")
+library("tidyverse")
+```
+
+
+```{r}
+# Establishing ODBC connection to 'SQLserveR'
+con <- dbConnect(odbc::odbc(), "SQLserveR")
+```
+
+
+```{r}
+
 ```
 
