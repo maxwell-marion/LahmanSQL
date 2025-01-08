@@ -4,6 +4,18 @@ output: html_document
 date: "2025-01-02"
 ---
 
+## Introduction
+
+The intention behind this exercise is to improve on my SQL abilities, and to dive into some baseball statistics. 
+
+To begin, I downloaded the SQL version of Sean Lahman's iconic baseball database that spans the 1871-2023 seasons. You can find the database, and more about Sean Lahman here: http://seanlahman.com/. 
+
+
+## Accessing the SQL database
+
+The SQL database file was in a .bak format, which I was unfamiliar with initially. I learned that this was a common way to export a backup of a database, and that in order to access and query it, I would need to restore the database using SQL Server Management Studio. Once this was completed, I added my local SQL server and the restored database as an ODBC Data Source. Finally, I used the `DBI` library in R, in order to establish a connection to the database.
+
+
 ```{r}
 # Libraries
 library("DBI")
@@ -17,7 +29,80 @@ con <- dbConnect(odbc::odbc(), "SQLserveR")
 ```
 
 
+## Toronto Blue Jays - Historic Regular Season Pitching Data
+
+I am interested in pitching statistics for my favorite team, the Toronto Blue Jays. Using the query below, I have created a data frame that contains the regular season pitching data for every pitcher, in every year that the Jays have existed, minus this past season (1977-2023.) Included in this dataframe are the pitcher's first and last names from the `People` table of lahman2023, and a bevy of pitching statistics from the `Pitching` table.
+
+```{sql connection=con, output.var = pitching_data}
+SELECT Pitching.*, People.nameFirst, People.nameLast, People.throws
+FROM lahman2023..Pitching
+JOIN lahman2023..People
+ON Pitching.playerID = People.playerID
+WHERE Pitching.teamID = 'TOR'
+ORDER BY Pitching.yearID
+```
+
+
+Using this dataframe, I wanted to look at two statistics in particular - Completed Games (CG) and Saves (SV). 
+
 ```{r}
+# R Code
+# Look at a few stats, including CG - Completed Game and examine how that's change historically, and SV - Saves to see great relievers
+# Summarize by year, CG. Summarize by year, SV
+
+p1 <- pitching_data %>% group_by(yearID) %>% summarize("Completed Games" = sum(CG), "Saves" = sum(SV))
+
+p1_long <- p1 %>% gather("Statistic", "Count", -yearID)
+
+ggplot(p1_long, aes(x = yearID, y = Count, fill = Statistic)) + geom_col(position = "dodge") + labs(title = "Pitching: Total Completed Games and Saves by Year\nToronto Blue Jays (1977-2023)", x = "Year")
+```
+
+Plotting (...)
+
+
+## Toronto Blue Jays - Historic Post Season Pitching and Hitting Data
+
+The Blue Jays won the World series in the year I was born, 1992, and the following year, 1993. Given I missed watching these seasons and post-seasons, I figure it would be interesting to take a look at the best performers of these postseasons. 
+
+```{sql connection=con, output.var = postpitching_data}
 
 ```
 
+
+```{sql connection=con, output.var = posthitting_data}
+
+```
+
+
+```{r}
+# R Code
+# Visualize starting pitchers and their ERAs
+
+
+```
+
+
+```{r}
+# R Code
+# Visualize hitter stats
+```
+
+
+
+## Salaries for the Championship Teams
+
+ABCDE
+
+
+```{sql connection=con, output.var = salary_data}
+
+```
+
+
+```{r}
+# Compare salary situations for the 1992 and 1993 teams, composition spent on hitter/pitchers
+```
+
+
+
+## Conclusion
