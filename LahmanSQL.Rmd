@@ -20,6 +20,7 @@ The SQL database file was in a .bak format, which I was unfamiliar with initiall
 # Libraries
 library("DBI")
 library("tidyverse")
+library("gt")
 ```
 
 
@@ -62,29 +63,51 @@ Plotting (...)
 
 ## Toronto Blue Jays - Historic Post Season Pitching and Hitting Data
 
-The Blue Jays won the World series in the year I was born, 1992, and the following year, 1993. Given I missed watching these seasons and post-seasons, I figure it would be interesting to take a look at the best performers of these postseasons. 
+The Blue Jays won the World series in the year I was born, 1992, and the following year, 1993. Given I missed watching these seasons and post-seasons, I figure it would be interesting to take a look at the best pitching performers of these postseasons. 
 
 ```{sql connection=con, output.var = postpitching_data}
-
+SELECT PitchingPost.*, People.nameFirst, People.nameLast, People.throws
+FROM lahman2023..PitchingPost
+JOIN lahman2023..People
+ON PitchingPost.playerID = People.playerID
+WHERE PitchingPost.teamID = 'TOR' AND (PitchingPost.yearID = 1992 OR PitchingPost.yearID = 1993)
 ```
 
 
 ```{sql connection=con, output.var = posthitting_data}
-
+SELECT BattingPost.*, People.nameFirst, People.nameLast, People.throws
+FROM lahman2023..BattingPost
+JOIN lahman2023..People
+ON BattingPost.playerID = People.playerID
+WHERE BattingPost.teamID = 'TOR' AND (BattingPost.yearID = 1992 OR BattingPost.yearID = 1993)
 ```
 
 
+Creating a quick table with basic pitching statistics for starting World Series pitchers in 1992 and 1993 gives us a rough idea of who excelled and who struggled in these two series.
+
 ```{r}
 # R Code
-# Visualize starting pitchers and their ERAs
+# Visualize World Series starting pitchers
 
+# Pulling a few relevant statistics for our WS pitching table
+post_starters <- filter(postpitching_data, GS >= 1 & round == "WS") %>% 
+  relocate(c("nameFirst","nameLast")) %>%
+  arrange(yearID, ERA) %>% 
+  select(c("nameFirst","nameLast","yearID","round","G","GS","IPouts","H","ER","HR","BB","ERA"))
 
+# Using gt to create a table
+gt(post_starters) %>% tab_header(title = "Starting Pitcher Performance - World Series", subtitle = "Toronto Blue Jays (1992 + 1993)") %>% 
+  opt_stylize(style = 6, color = "blue") %>%
+  tab_style(cell_fill(color = "#AECCE4"), locations = cells_body(rows = yearID > 1992)) %>%
+  tab_style(cell_fill(color = "#9ABDDC"), locations = cells_body(rows = yearID == 1992))
+  
 ```
 
 
 ```{r}
 # R Code
 # Visualize hitter stats
+# 
 ```
 
 
@@ -95,12 +118,16 @@ ABCDE
 
 
 ```{sql connection=con, output.var = salary_data}
-
+SELECT Salaries.*, People.nameFirst, People.nameLast
+FROM lahman2023..Salaries
+JOIN lahman2023..People
+ON Salaries.playerID = People.playerID 
+WHERE Salaries.teamID = 'TOR' AND (Salaries.yearID = 1992 OR Salaries.yearID = 1993)
 ```
 
 
 ```{r}
-# Compare salary situations for the 1992 and 1993 teams, composition spent on hitter/pitchers
+# Compare top salary players for the 1992 and 1993 teams
 ```
 
 
