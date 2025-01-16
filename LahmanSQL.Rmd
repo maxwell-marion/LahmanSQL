@@ -51,19 +51,21 @@ Using this dataframe, I wanted to look at two statistics in particular - Complet
 # Look at a few stats, including CG - Completed Game and examine how that's change historically, and SV - Saves to see great relievers
 # Summarize by year, CG. Summarize by year, SV
 
-p1 <- pitching_data %>% group_by(yearID) %>% summarize("Completed Games" = sum(CG), "Saves" = sum(SV))
+p1 <- pitching_data %>% group_by(yearID) %>% summarize("Completed Games (CG)" = sum(CG), "Saves (SV)" = sum(SV))
 
 p1_long <- p1 %>% gather("Statistic", "Count", -yearID)
 
 ggplot(p1_long, aes(x = yearID, y = Count, fill = Statistic)) + geom_col(position = "dodge") + labs(title = "Pitching: Total Completed Games and Saves by Year\nToronto Blue Jays (1977-2023)", x = "Year")
 ```
 
-Plotting (...)
+Plotting these two basic statistics allows us to see a clear trend that has been a source of much discussion for baseball fans: the sharp decline in the number of complete games pitched. A "Completed Game" (CG) is fairly self explanatory, it is simply when a pitcher pitches the entirety of a game. A "Save" (SV) is a bit more complicated, as the pitcher must finish the game on the winning team and do one of the following: pitch at least three innings, enter the game with a lead of three or less runs while pitching at least one inning, or enter the game with the tying run in position (on-deck, at plate, or on the bases.) 
+
+Taking a look at our graph of completed games and saves per year, we can see the beginning of this trend towards using relief pitchers to finish games. The number of saves for the Toronto Blue Jays pitchers skyrockets in the 80's and never lets up. In the modern era we begin to see years without a single completed game pitched, and when they happen they are newsworthy - typically because it means the pitcher has also pitched a shutout!
 
 
 ## Toronto Blue Jays - Historic Post Season Pitching and Hitting Data
 
-The Blue Jays won the World series in the year I was born, 1992, and the following year, 1993. Given I missed watching these seasons and post-seasons, I figure it would be interesting to take a look at the best pitching performers of these postseasons. 
+The Blue Jays won the World series in the year I was born, 1992, and the following year, in 1993. Given I missed watching these seasons and post-seasons, I figure it would be interesting to take a look at the best pitching performers of these postseasons. 
 
 ```{sql connection=con, output.var = postpitching_data}
 SELECT PitchingPost.*, People.nameFirst, People.nameLast, People.throws
@@ -104,32 +106,63 @@ gt(post_starters) %>% tab_header(title = "Starting Pitcher Performance - World S
 ```
 
 
+Right away, there are two starting pitchers who jump off the page but for opposite reasons. Todd Stottlemyre struggled mightily in his one start of the 1993 World Series, giving up six runs in two innings, for an ERA of 27.00. On the other side of things: Jimmy Key had a fantastic start in the 1992 World Series, and another portion of a game on top - with only six hits and one earned run through 27 IPouts, or outs pitched (9 innings.)
+
+Diving a bit deeper, we can learn from the [Baseball Reference Play by Play](https://www.baseball-reference.com/boxes/TOR/TOR199210210.shtml) that he started game 4 of the 1992 World Series and pitched 7.2 innings, only giving up a single run. [Game six]((https://www.baseball-reference.com/boxes/ATL/ATL199210240.shtml)) went to extra innings and Key was called upon to enter with one out already on the board in the bottom of the tenth. He would go on to give up a single in the bottom of the 11th, and a couple groundouts before being pulled for Mike Timlin who secured the final out. 
+
+A fun piece of trivia - this game featured Deion Sanders playing LF (left field) for Atlanta. He later won two Super Bowl titles in professional American Football, making him the only athlete to play in both a World Series and a Super Bowl!
+
+Taking a quick look at relieving pitchers, we can filter down to pitchers who recorded no starts, but one or more saves in either the ALCS or WS rounds.
+
+
+```{r}
+# R Code
+# Visualize World Series relieving pitchers
+
+# Pulling a few relevant statistics for our WS pitching table
+post_relievers <- filter(postpitching_data, GS < 1 & SV >= 1) %>% 
+  relocate(c("nameFirst","nameLast")) %>%
+  arrange(yearID, ERA) %>% 
+  select(c("nameFirst","nameLast","yearID","round","G","SV","IPouts","H","ER","HR","BB","ERA"))
+
+# Using gt to create a table
+gt(post_relievers) %>% tab_header(title = "Relieving Pitcher Performance - World Series", subtitle = "Toronto Blue Jays (1992 + 1993)") %>% 
+  opt_stylize(style = 6, color = "blue") %>%
+  tab_style(cell_fill(color = "#AECCE4"), locations = cells_body(rows = yearID > 1992)) %>%
+  tab_style(cell_fill(color = "#9ABDDC"), locations = cells_body(rows = yearID == 1992))
+```
+
+
+
+The heroes of the bullpen are immediately clear. Tom Henke in 1992 and Duane Ward in 1993 both met the threshold and put up five saves and four saves between the ALCS and World Series, respectively. Incidentally, Tom Henke and Duane Ward are also the first and second overall ERA leaders in franchise history. In third place is another familiar face, Jimmy Key, who started his career as a reliever.
+
+
+Let's take a look at Jays hitters in the ALCS and World Series who had greater than five hits, or greater than five runs batted in.
+
 ```{r}
 # R Code
 # Visualize hitter stats
 # 
+
+# Pulling a few relevant statistics for our hitting table
+post_hitters <- filter(posthitting_data, R > 5 | RBI > 5) %>% 
+  relocate(c("nameFirst","nameLast")) %>%
+  arrange(yearID, nameFirst) %>% 
+  select(c("nameFirst","nameLast","yearID","round","AB","R","H","HR","RBI"))
+
+# Using gt to create a table
+gt(post_hitters) %>% tab_header(title = "Hitter Performance: ALCS + World Series", subtitle = "Toronto Blue Jays (1992 + 1993)") %>% 
+  opt_stylize(style = 6, color = "blue") %>%
+  tab_style(cell_fill(color = "#AECCE4"), locations = cells_body(rows = yearID > 1992)) %>%
+  tab_style(cell_fill(color = "#9ABDDC"), locations = cells_body(rows = yearID == 1992))
 ```
 
 
+According to [Wikipedia's article on the 1992 World Series,](https://en.wikipedia.org/wiki/1992_World_Series#Composite_box) this was notable for being "one of the few six-game series in which the winning team was outscored. This certainly meshes with our table, given only two hitters from 1992 appear, and neither from the World Series that year. The 1993 World Series however was a different story, with six hitters crossing our cutoff. Notably, Paul Molitor appeared both for his good ALCS performance, and his fantastic WS performance. 
 
-## Salaries for the Championship Teams
-
-ABCDE
-
-
-```{sql connection=con, output.var = salary_data}
-SELECT Salaries.*, People.nameFirst, People.nameLast
-FROM lahman2023..Salaries
-JOIN lahman2023..People
-ON Salaries.playerID = People.playerID 
-WHERE Salaries.teamID = 'TOR' AND (Salaries.yearID = 1992 OR Salaries.yearID = 1993)
-```
-
-
-```{r}
-# Compare top salary players for the 1992 and 1993 teams
-```
-
+Another fun appearance is Tony Fernández's 1993 World Series effort. He lead all post season hitters in both years in the ALCS or WS round in the RBI category, with nine. According to Baseball Reference's article [Toronto Blue Jays Top 10 Career Batting Leaders](https://www.baseball-reference.com/teams/TOR/leaders_bat.shtml) Fernández is both ranked 3rd for Offensive WAR (Wins above Replacement) and ranked 1st in Defensive WAR. He played the shortstop position and was known for his defense, but he was also clearly an impressive hitter and was the first Jay to accomplish over 200 hits in a season. 
 
 
 ## Conclusion
+
+
